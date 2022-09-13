@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "name": "Abhi",
+        "location": "Mumbai"
+    },
+    {
+        "id": 1,
+        "name": "Joe",
+        "location": "Goa"
+    },
+    {
+        "id": 2,
+        "name": "Lily",
+        "location": "Surat"
+    },
+    {
+        "id": 4,
+        "name": "Stuart",
+        "location": "Pune"
+    },
+    {
+        "id": 5,
+        "name": "Alok",
+        "location": "Ahemadabad"
+    },
+    {
+        "id": 6,
+        "name": "Stecy",
+        "location": "Haryana"
+    },
+    {
+        "id": 8,
+        "name": "Gary",
+        "location": "Thane"
+    }
+]

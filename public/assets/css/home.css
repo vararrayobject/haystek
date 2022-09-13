@@ -1,0 +1,73 @@
+.list-item-cust {
+    box-shadow: 0px 5px 2px #0006;
+    border-radius: 20px;
+}
+
+.btn-cust {
+    background-color: #f49c63;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 500;
+    border-radius: 40px;
+    padding: 10px 35px;
+    border: 1px solid #f49c63;
+}
+
+.head-text {
+    color: #fff;
+    font-size: 48px;
+    font-weight: 500;
+}
+
+.total-people {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+body {
+    background-color: #47afe7;
+    margin: auto;
+}
+
+.d-flex {
+    display: flex;
+}
+
+.w-90per {
+    width: 95%;
+}
+
+.w-10per {
+    width: 5%;
+}
+
+.serial-text {
+    background-color: #6dce8c;
+    border-radius: 20px 0px 0px 20px;
+}
+
+.name-div {
+    background-color: #d2e6f9;
+    border-radius: 0px 20px 0px 0px;
+}
+
+.location-div {
+    background-color: #fff;
+    border-radius: 0px 0px 20px 0px;
+}
+
+.serial-text h1 {
+    color: #fff;
+    font-size: 42px;
+    font-weight: 900;
+    line-height: normal;
+}
+
+.detail-text h1 {
+    color: #000;
+    font-size: 42px;
+    font-weight: 500;
+    line-height: normal;
+}
