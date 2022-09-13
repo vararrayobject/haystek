@@ -18,4 +18,3 @@ use Illuminate\Support\Facades\Route;
 // });
 
 Route::get('/', ['uses' => '\App\Http\Controllers\PeopleController@index']);
-Route::get('/people', ['uses' => '\App\Http\Controllers\PeopleController@people']);
