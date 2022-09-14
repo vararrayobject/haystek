@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\Pool;
-use GuzzleHttp\Client;
 use App\Http\Traits\ApiResponseTrait;
 use Carbon\Carbon;
 
@@ -24,9 +23,6 @@ class ApiController extends Controller
         if (empty(env('GITHUB_PERSONAL_ACCESS_TOKEN')))
             return $this->errorResponse('403', 'Token Required');
 
-        $responseToSend = [];
-        $client = new Client();
-
         $headers = [
             'Authorization' => "Bearer " . env('GITHUB_PERSONAL_ACCESS_TOKEN')
         ];
@@ -34,6 +30,8 @@ class ApiController extends Controller
         $response = Http::withToken(env('GITHUB_PERSONAL_ACCESS_TOKEN'))->acceptJson()->get('https://api.github.com/search/repositories?q=stars:>0&per_page=100&order=Desc');
 
         if (!$response->ok()) return $this->errorResponse($response->status(), $response->collect()->has('message') ? $response->json()['message'] : 'Not Found');      // return a success response
+        
+        $responseToSend = [];
 
         $items = $response->json()['items'];
         $responses = Http::pool(function (Pool $pool) use($items, $responseToSend) {
@@ -42,7 +40,7 @@ class ApiController extends Controller
                 $pool->as($item['id'])->withToken(env('GITHUB_PERSONAL_ACCESS_TOKEN'))->acceptJson()->get($item['contributors_url'] . '?per_page=1');
             }
         });
-        
+
         foreach ($items as $item) {
             $contributionRes = [];
             if ($responses[$item['id']]->ok()) {
