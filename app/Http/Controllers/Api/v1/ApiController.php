@@ -33,7 +33,7 @@ class ApiController extends Controller
         
         $responseToSend = [];
 
-        $items = $response->json()['items'];
+        $items = $response->collect()->sortByDesc('stargazers_count')['items'];
         $responses = Http::pool(function (Pool $pool) use($items, $responseToSend) {
             $contributionRes = [];
             foreach ($items as $item) {
