@@ -5,16 +5,10 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\Pool;
 use GuzzleHttp\Client;
-use GuzzleHttp\Promise;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Pool;
-// use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
 use App\Http\Traits\ApiResponseTrait;
-use GuzzleHttp\Psr7\Request as GuzzleRequest;
 use Carbon\Carbon;
-use Psr\Http\Message\ResponseInterface;
 
 class ApiController extends Controller
 {
@@ -27,6 +21,9 @@ class ApiController extends Controller
     */
     public function mostStarredRepos(Request $request)
     {
+        if (empty(env('GITHUB_PERSONAL_ACCESS_TOKEN')))
+            return $this->errorResponse('403', 'Token Required');
+
         $responseToSend = [];
         $client = new Client();
 
@@ -34,49 +31,42 @@ class ApiController extends Controller
             'Authorization' => "Bearer " . env('GITHUB_PERSONAL_ACCESS_TOKEN')
         ];
 
-        try {
-            $res = $client->get('https://api.github.com/search/repositories?q=stars:>0&per_page=100&order=Desc', [ 'headers' => $headers ]);
-            // $res = $client->request('GET', 'https://api.github.com/repos/freeCodeCamp/freeCodeCamp/contributors?per_page=1', [ 'headers' => $headers ]);
-            $response = json_decode($res->getBody(), true);
-            $response = collect($response['items'])->sortByDesc('stargazers_count');
-            foreach ($response as $key => $value) {
-                try {
-                    $res = $client->get($value['contributors_url'] . '?per_page=1', [ 'headers' => $headers ]);
-                    $contributionRes = json_decode($res->getBody());
-                    $contributionRes = [
-                        'login' => $contributionRes[0]->login,
-                        'id' => $contributionRes[0]->id,
-                        'contributions' => $contributionRes[0]->contributions,
-                    ];
+        $response = Http::withToken(env('GITHUB_PERSONAL_ACCESS_TOKEN'))->acceptJson()->get('https://api.github.com/search/repositories?q=stars:>0&per_page=100&order=Desc');
 
-                    $tempArr = $this->pushToResponseToSend($responseToSend, $value, $contributionRes);      // common function to load the temp variable
-                    array_push($responseToSend, $tempArr);
+        if (!$response->ok()) return $this->errorResponse($response->status(), $response->collect()->has('message') ? $response->json()['message'] : 'Not Found');      // return a success response
 
-                } catch (\Throwable $th) {
-                    // If we get any exception then load contributor array as blank
-                    $tempArr = $this->pushToResponseToSend($responseToSend, $value, []);
-                    array_push($responseToSend, $tempArr);
-                }
+        $items = $response->json()['items'];
+        $responses = Http::pool(function (Pool $pool) use($items, $responseToSend) {
+            $contributionRes = [];
+            foreach ($items as $item) {
+                $pool->as($item['id'])->withToken(env('GITHUB_PERSONAL_ACCESS_TOKEN'))->acceptJson()->get($item['contributors_url'] . '?per_page=1');
             }
-    
-            unset($response, $res);             // unset the variables to free space
-            return $this->successResponse(200, $responseToSend);        // return a success response
-        } catch (\Throwable $th) {
-            return $this->errorResponse($th->getResponse()->getStatusCode(), $th->getResponse()->getReasonPhrase());        // return a success response
-        }
-    }
+        });
+        
+        foreach ($items as $item) {
+            $contributionRes = [];
+            if ($responses[$item['id']]->ok()) {
+                $contributionRes = [
+                    'login' => $responses[$item['id']]->json()[0]['login'],
+                    'id' => $responses[$item['id']]->json()[0]['id'],
+                    'contributions' => $responses[$item['id']]->json()[0]['contributions'],
+                ];
+            }
 
-    public function pushToResponseToSend($responseToSend, $value, $contributionRes)
-    {
-        $tempArr = [];
-        $tempArr = collect([
-            'id'=> $value['id'],
-            'name'=> $value['name'],
-            'owner'=> $value['owner'],
-            'html_url'=> $value['html_url'],
-            'contributor'=> $contributionRes,
-            'created_at'=> Carbon::parse($value['created_at'])->isoFormat('MMMM Do YYYY, h:mm:ss a')        //June 15th 2018, 5:34:15 pm
-        ]);
-        return $tempArr;
+            $tempArr = [];
+            $tempArr = collect([
+                'id'=> $item['id'],
+                'name'=> $item['name'],
+                'owner'=> $item['owner'],
+                'html_url'=> $item['html_url'],
+                'contributor'=> $contributionRes,
+                'created_at'=> Carbon::parse($item['created_at'])->isoFormat('MMMM Do YYYY, h:mm:ss a')        //June 15th 2018, 5:34:15 pm
+            ]);
+
+            array_push($responseToSend, $tempArr);
+        }
+
+        unset($response, $res, $responses);             // unset the variables to free space
+        return $this->successResponse(200, $responseToSend);        // return a success response
     }
 }
